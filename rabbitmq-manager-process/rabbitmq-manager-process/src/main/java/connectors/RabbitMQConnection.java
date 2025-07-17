@@ -34,7 +34,7 @@ public class RabbitMQConnection {
      */
     private String[] connections;
     private ConnectionFactory connectionFactory = null;
-    private List<RabbitDomain> rabbitConnections = new ArrayList<>();
+    private final List<RabbitDomain> rabbitConnections = new ArrayList<>();
 
     /**
      * Build a connection pool with many RabbitMQ instances
