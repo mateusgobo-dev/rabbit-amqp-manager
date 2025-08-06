@@ -9,6 +9,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.impl.recovery.RetryHandler;
 import com.rabbitmq.client.impl.recovery.TopologyRecoveryRetryHandlerBuilder;
 import converters.TrataConteudoMensagem;
+import interfaces.QueueImpl;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import model.QueueInformation;
@@ -192,8 +193,9 @@ public class RabbitMQConnection {
                     this.connectionFactory.setPassword(connectionDetails[4].trim());
                     this.connectionFactory.setAutomaticRecoveryEnabled(false);
 
+                    int retry = Objects.nonNull(connectionDetails[5]) ? Integer.parseInt(connectionDetails[5].trim()) : 3;//Default
                     RetryHandler retryHandler = new TopologyRecoveryRetryHandlerBuilder().
-                            retryAttempts(Integer.parseInt(connectionDetails[5].trim()))
+                            retryAttempts(retry)
                             .build();
 
                     this.connectionFactory.setTopologyRecoveryRetryHandler(retryHandler);
@@ -267,19 +269,9 @@ public class RabbitMQConnection {
                                                BuiltinExchangeType builtinExchangeType) throws IOException, TimeoutException, Exception {
         try {
             RabbitDomain rabbitDomain = this.validateRabbitDomain(idConnection);
-            HashMap<String, Object> args = new HashMap<>();
-            args.put("x-queue-type", "classic");
-            try {
-                this.connection(rabbitDomain);
-
-                Channel channel = this.channel(rabbitDomain);
-                channel.exchangeDeclare(exchange, (Objects.nonNull(builtinExchangeType) ? builtinExchangeType :  BuiltinExchangeType.DIRECT), true);
-                channel.queueDeclare(queueName, true, false, false, args);
-                channel.queueBind(queueName, exchange, routingKey);
-            } catch (IOException ex) {
-                log.error("Falha no registro da \"queue\" usando \"DIRECT EXCHANGE\" para o servidor[" + rabbitDomain.getHost() + "]..., erro = " + ex.getMessage());
-                throw new IOException("Falha no registro da \"queue\" usando \"DIRECT EXCHANGE\" para o servidor[" + rabbitDomain.getHost() + "]..., erro = " + ex.getMessage());
-            }
+            this.connection(rabbitDomain);
+            Channel channel = this.channel(rabbitDomain);
+            QueueImpl.buildQueue.addBrokerQueue(queueName, exchange, routingKey, rabbitDomain, channel, builtinExchangeType);
             return rabbitDomain;
         } catch (Exception ex) {
             throw new Exception(ex.getMessage());
