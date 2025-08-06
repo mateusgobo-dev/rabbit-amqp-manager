@@ -6,7 +6,9 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import converters.TreatMessageContent;
+import com.rabbitmq.client.impl.recovery.RetryHandler;
+import com.rabbitmq.client.impl.recovery.TopologyRecoveryRetryHandlerBuilder;
+import converters.TrataConteudoMensagem;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import model.QueueInformation;
@@ -188,15 +190,19 @@ public class RabbitMQConnection {
                     this.connectionFactory.setPort(Integer.parseInt(connectionDetails[2].trim()));
                     this.connectionFactory.setUsername(connectionDetails[3].trim());
                     this.connectionFactory.setPassword(connectionDetails[4].trim());
-                    this.connectionFactory.setAutomaticRecoveryEnabled(true);
+                    this.connectionFactory.setAutomaticRecoveryEnabled(false);
 
+                    RetryHandler retryHandler = new TopologyRecoveryRetryHandlerBuilder().
+                            retryAttempts(Integer.parseInt(connectionDetails[5].trim()))
+                            .build();
+
+                    this.connectionFactory.setTopologyRecoveryRetryHandler(retryHandler);
                     RabbitDomain rabbitDomain = this.createRabbitDomain(connectionDetails);
                     try {
                         Connection rabbitConnection = this.connectionFactory.newConnection();
                         rabbitConnection.setId(connectionDetails[0]);
                         rabbitDomain.setConnection(rabbitConnection);
                         rabbitDomain.setConnectionId(rabbitConnection.getId());
-
                         this.rabbitConnections.add(rabbitDomain);
                     } catch (IOException ex) {
                         log.error("Falha ao estabelecer conexao com message broker, servidor[" + rabbitDomain.getHost() + "]. Erro = " + ex.getMessage());
@@ -254,10 +260,11 @@ public class RabbitMQConnection {
         return rabbitDomain;
     }
 
-    public RabbitDomain createDirectExchangeForQueue(String queueName,
-                                                     String exchange,
-                                                     String routingKey,
-                                                     String idConnection) throws IOException, TimeoutException, Exception {
+    public RabbitDomain createExchangeForQueue(String queueName,
+                                               String exchange,
+                                               String routingKey,
+                                               String idConnection,
+                                               BuiltinExchangeType builtinExchangeType) throws IOException, TimeoutException, Exception {
         try {
             RabbitDomain rabbitDomain = this.validateRabbitDomain(idConnection);
             HashMap<String, Object> args = new HashMap<>();
@@ -266,7 +273,7 @@ public class RabbitMQConnection {
                 this.connection(rabbitDomain);
 
                 Channel channel = this.channel(rabbitDomain);
-                channel.exchangeDeclare(exchange, BuiltinExchangeType.DIRECT, true);
+                channel.exchangeDeclare(exchange, (Objects.nonNull(builtinExchangeType) ? builtinExchangeType :  BuiltinExchangeType.DIRECT), true);
                 channel.queueDeclare(queueName, true, false, false, args);
                 channel.queueBind(queueName, exchange, routingKey);
             } catch (IOException ex) {
@@ -279,18 +286,19 @@ public class RabbitMQConnection {
         }
     }
 
-    public RabbitDomain createDirectExchangeForQueue(String queueName,
-                                                     String exchange,
-                                                     String routingKey,
-                                                     String idConnection,
-                                                     HashMap<String, Object> args) throws IOException, TimeoutException, Exception {
+    public RabbitDomain createExchangeForQueue(String queueName,
+                                               String exchange,
+                                               String routingKey,
+                                               String idConnection,
+                                               HashMap<String, Object> args,
+                                               BuiltinExchangeType builtinExchangeType) throws IOException, TimeoutException, Exception {
         try {
             RabbitDomain rabbitDomain = this.validateRabbitDomain(idConnection);
             try {
                 this.connection(rabbitDomain);
 
                 Channel channel = this.channel(rabbitDomain);
-                channel.exchangeDeclare(exchange, BuiltinExchangeType.DIRECT, true);
+                channel.exchangeDeclare(exchange, (Objects.nonNull(builtinExchangeType) ? builtinExchangeType :  BuiltinExchangeType.DIRECT), true);
                 channel.queueDeclare(queueName, true, false, false, args);
                 channel.queueBind(queueName, exchange, routingKey);
             } catch (IOException ex) {
@@ -418,7 +426,7 @@ public class RabbitMQConnection {
         try {
             RabbitDomain rabbitDomain = this.validateRabbitDomain(idConnection);
             Channel channel = this.channel(rabbitDomain);
-            byte[] message = new TreatMessageContent().convertToBytes(data);
+            byte[] message = new TrataConteudoMensagem().converterParaBytes(data);
             BasicProperties basicProperties = new BasicProperties().builder()
                     .deliveryMode(2)
                     .priority(1)
@@ -442,7 +450,7 @@ public class RabbitMQConnection {
         try {
             RabbitDomain rabbitDomain = this.validateRabbitDomain(idConnection);
             Channel channel = this.channel(rabbitDomain);
-            byte[] message = new TreatMessageContent().convertToBytes(data);
+            byte[] message = new TrataConteudoMensagem().converterParaBytes(data);
             BasicProperties basicProperties = new BasicProperties().builder()
                     .deliveryMode(2)
                     .priority(1)

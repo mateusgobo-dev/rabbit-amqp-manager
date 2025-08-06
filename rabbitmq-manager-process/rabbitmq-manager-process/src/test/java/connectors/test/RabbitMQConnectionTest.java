@@ -14,18 +14,20 @@ class RabbitMQConnectionTest extends TestOnContainersCase {
     @Test
     void rabbitMqConnectionAllTests() {
         try {
-            RabbitMQConnection rabbitMQConnection = RabbitMQConnection.builder().connections(this.connections).build();
-            rabbitMQConnection.buildConnectionFactory();
+            RabbitMQConnection connectionServer1 = RabbitMQConnection.builder().connections(this.connections).build();
+            connectionServer1.buildConnectionFactory();
 
-            RabbitDomain rabbitDomain = rabbitMQConnection.rabbitDomain("CON1");
-            rabbitDomain = rabbitMQConnection.createDirectExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1");
-            rabbitDomain = rabbitMQConnection.createDirectExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1");
-            rabbitMQConnection.closeConnection(rabbitDomain);
+            RabbitMQConnection connectionServer2 = RabbitMQConnection.builder().connections(this.connections).build();
+            connectionServer2.buildConnectionFactory();
 
-            rabbitDomain = rabbitMQConnection.rabbitDomain("CON2");
-            rabbitDomain = rabbitMQConnection.createDirectExchangeForQueue("DOCUMENTS_MINING", "DIRECT-DOCUMENT-MINING", "ddm-rk", "CON2");
-            rabbitMQConnection.closeConnection(rabbitDomain);
-            
+            RabbitDomain rabbitDomain = connectionServer1.rabbitDomain("CON1");
+            rabbitDomain = connectionServer1.createExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1", null);
+            connectionServer1.closeConnection(rabbitDomain);
+
+
+            RabbitDomain rabbitDomain2 = connectionServer2.rabbitDomain("CON2");
+            rabbitDomain2 = connectionServer2.createExchangeForQueue("DOCUMENTS_MINING", "DIRECT-DOCUMENT-MINING", "ddm-rk", "CON2", null);
+            connectionServer2.closeConnection(rabbitDomain);
         }catch(Exception ex) {
             log.error(ex.getMessage());
         }
@@ -52,11 +54,11 @@ class RabbitMQConnectionTest extends TestOnContainersCase {
 
 
     @Test
-    void createDirectExchangeForQueue() {
+    void createExchangeForQueue() {
         try {
             RabbitMQConnection rabbitMQConnection = RabbitMQConnection.builder().connections(this.connections).build();
             rabbitMQConnection.buildConnectionFactory();
-            rabbitMQConnection.createDirectExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1");
+            rabbitMQConnection.createExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1", null);
         }catch(Exception ex) {
             log.error(ex.getMessage());
         }
@@ -84,7 +86,7 @@ class RabbitMQConnectionTest extends TestOnContainersCase {
         try {
             RabbitMQConnection rabbitMQConnection = RabbitMQConnection.builder().connections(this.connections).build();
             rabbitMQConnection.buildConnectionFactory();
-            rabbitMQConnection.createDirectExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1");
+            rabbitMQConnection.createExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1", null);
             rabbitMQConnection.sendTextMessage("CON1", "DIRECT-DOCUMENTS", "dd-rk", "Teste1");
             rabbitMQConnection.sendTextMessage("CON1", "DIRECT-DOCUMENTS", "dd-rk", "Teste2");
             rabbitMQConnection.sendTextMessage("CON1", "DIRECT-DOCUMENTS", "dd-rk", "Teste3");
@@ -101,7 +103,7 @@ class RabbitMQConnectionTest extends TestOnContainersCase {
             RabbitDomain rabbitDomain = RabbitDomain.builder().connectionId("CON1").build();
             RabbitMQConnection rabbitMQConnection = RabbitMQConnection.builder().connections(this.connections).build();
             rabbitMQConnection.buildConnectionFactory();
-            rabbitMQConnection.createDirectExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1");
+            rabbitMQConnection.createExchangeForQueue("DOCUMENTS", "DIRECT-DOCUMENTS", "dd-rk", "CON1", null);
             rabbitMQConnection.sendObjectMessage("CON1", "DIRECT-DOCUMENTS", "dd-rk", rabbitDomain);
 
             QueueInformation queueInformation = rabbitMQConnection.queueExists("CON1", "DOCUMENTS");
@@ -114,7 +116,7 @@ class RabbitMQConnectionTest extends TestOnContainersCase {
         try {
             RabbitMQConnection rabbitMQConnection = RabbitMQConnection.builder().connections(this.connections).build();
             rabbitMQConnection.buildConnectionFactory();
-            rabbitMQConnection.createDirectExchangeForQueue("DOCUMENTS", "DOCUMENTS-DOCUMENTS", "dd-rk", "CON1");
+            rabbitMQConnection.createExchangeForQueue("DOCUMENTS", "DOCUMENTS-DOCUMENTS", "dd-rk", "CON1", null);
             Long value = Long.valueOf(1);
             rabbitMQConnection.sendObjectMessage("CON1", "DOCUMENTS-DOCUMENTS", "dd-rk", value);
 
